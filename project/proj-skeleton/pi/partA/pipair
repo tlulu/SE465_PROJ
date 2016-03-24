@@ -1,0 +1,20 @@
+#!/bin/bash
+BC_FILE="$1"
+
+T_SUPPORT=3
+if [ ! -z "$2" ]
+then
+	T_SUPPORT="$2"
+fi
+
+T_CONFIDENCE=65
+if [ ! -z "$3" ]
+then
+	T_CONFIDENCE="$3"
+fi
+
+opt -print-callgraph $1 1>/dev/null 2>temp.callgraph
+
+java -Xms128m -Xmx128m  Main $T_SUPPORT $T_CONFIDENCE < temp.callgraph 2>/dev/null
+
+rm temp.callgraph 
