@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.Scanner;
 import java.util.TreeMap;
 
@@ -154,54 +155,52 @@ public class Main {
 
 			System.err.println("CONFIDENCE (" + supportPair.id1 + "," + supportPair.id2 + ")/(" + supportPair.id1 + ") = " + supportPair.confidence1);
 			System.err.println("CONFIDENCE (" + supportPair.id1 + "," + supportPair.id2 + ")/(" + supportPair.id2 + ") = " + supportPair.confidence2);
-
-			
 		}
 	}
 
 	public static void printBugs() {
-		for (SupportPair pair : supportPairs.values()) {
-			Iterator<String> callersForOne = calleeToCallers.get(pair.id1).keySet().iterator();
-			Iterator<String> callersForTwo = calleeToCallers.get(pair.id2).keySet().iterator();
-			String one = null;
-			String two = null;
-			boolean iterateOne = true;
-			boolean iterateTwo = true;
-			while (callersForOne.hasNext() && callersForTwo.hasNext()) {
+		for (SupportPair pair : pairsThatMatter) {
+			Set<String> keySetOne = calleeToCallers.get(pair.id1).keySet();
+			Set<String> keySetTwo = calleeToCallers.get(pair.id2).keySet();
+			String[] callersForOne = keySetOne.toArray(new String[keySetOne.size()]);
+			String[] callersForTwo = keySetTwo.toArray(new String[keySetTwo.size()]);
+			int i=0, j=0;
+			while (i < callersForOne.length && j < callersForTwo.length) {
 				// TODO: This is disappointing - stop using compareTo
-				if (iterateOne) {
-					one = callersForOne.next();
-				}
-				if (iterateTwo) {
-					two = callersForTwo.next();
-				}
+				String one = callersForOne[i];
+				String two = callersForTwo[j];
+
 				int compareValue = one.compareTo(two);
 				if (compareValue > 0) {
 					if (pair.confidence2 >= t_confidence) {
 						System.out.println(pair.bugReportString(false, two));
 					}
-					iterateOne = false;
-					iterateTwo = true;
+					j++;
 				}
 				else if (compareValue < 0) {
 					if (pair.confidence1 >= t_confidence) {
 						System.out.println(pair.bugReportString(true, one));
 					}
-					iterateOne = true;
-					iterateTwo = false;
+					i++;
 				}
 				else {
-					iterateOne = true;
-					iterateTwo = true;
+					i++;
+					j++;
 				}
 			}
-			while (callersForOne.hasNext() && pair.confidence1 >= t_confidence) {
-				one = callersForOne.next();
-				System.out.println(pair.bugReportString(true, one));
+			while (i < callersForOne.length) {
+				String one = callersForOne[i];
+				if (pair.confidence1 >= t_confidence) {
+					System.out.println(pair.bugReportString(true, one));
+				}
+				i++;
 			}
-			while (callersForTwo.hasNext() && pair.confidence2 >= t_confidence) {
-				two = callersForTwo.next();
-				System.out.println(pair.bugReportString(false, two));
+			while (j < callersForTwo.length) {
+				String two = callersForTwo[j];
+				if (pair.confidence2 >= t_confidence) {
+					System.out.println(pair.bugReportString(false, two));
+				}
+				j++;
 			}
 		}
 	}
