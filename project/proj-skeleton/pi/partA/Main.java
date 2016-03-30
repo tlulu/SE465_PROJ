@@ -6,10 +6,6 @@ import java.util.Set;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-// TODO: Stop using the following:
-//	a) String.compareTo()
-//	b) String.equals()
-
 public class Main {
 
 	public final static String FUNCTION_IDENTIFIER = "Call graph node for function: '";
@@ -27,6 +23,7 @@ public class Main {
 		}
 	}
 
+	// Represents a single method in the call graph and its support.
 	private static class SupportSingle {
 		String id;
 		int supportValue;
@@ -37,6 +34,7 @@ public class Main {
 		}
 	}
 
+	// Represents a pair of methods in the call graph and their support and confidence values.
 	private static class SupportPair {
 		String id1;
 		String id2;
@@ -45,6 +43,7 @@ public class Main {
 		double confidence2;
 
 		public SupportPair(String id1, String id2) {
+			// Ensure that id1 < id2
 			if (id1.compareTo(id2) < 0) {
 				this.id1 = id1;
 				this.id2 = id2;
@@ -60,6 +59,8 @@ public class Main {
 		}
 
 		public static String getPairID(String id1, String id2) {
+			// Ensure that the lesser of the two ids comes first
+			// Format is: "id1 id2"
 			String pairID;
 			
 			if (id1.compareTo(id2) < 0) {
@@ -86,15 +87,20 @@ public class Main {
 	static int t_support;
 	static double t_confidence;
 	
-	static HashMap<String, Node> graph; // Caller -> Callees
+	// Store caller method nodes only
+	static HashMap<String, Node> graph;
+	// Store both caller and callee method nodes
 	static HashMap<String, Node> allNodes;
 
 	static HashMap<String, SupportSingle> supportSingles;
 	static HashMap<String, SupportPair> supportPairs;
 
+	// Store sorted list of callers for each callee
 	static HashMap<String, TreeMap<String, Boolean> > calleeToCallers;
+	// Store the support pairs whose support and confidence pass the thresholds
 	static ArrayList<SupportPair> pairsThatMatter;
 
+	// Debugging tool
 	public static void printGraph() {
 		System.err.println("Graph: ");
 		for (Node node : graph.values()) {
@@ -105,6 +111,7 @@ public class Main {
 		}
 	}
 
+	// Debugging tool
 	public static void printSupports() {
 		for (SupportSingle supportSingle : supportSingles.values()) {
 			System.err.println("SUPP_SINGLE : " + supportSingle.id + "=" + supportSingle.supportValue);
@@ -116,6 +123,7 @@ public class Main {
 
 	}
 
+	// Calculate the support values for each method and pair of methods
 	public static void buildSupports() {
 		for (Node node : graph.values()) {
 			ArrayList<String> visitedCallees = new ArrayList<String>();
@@ -143,6 +151,7 @@ public class Main {
 		}	
 	}
 
+	// Calculate the confidence values for each pair of methods that are called together at least once
 	public static void buildConfidences() {
 		for (SupportPair supportPair : supportPairs.values()) {
 			supportPair.confidence1 = (double)supportPair.supportValue / supportSingles.get(supportPair.id1).supportValue;
@@ -158,6 +167,9 @@ public class Main {
 		}
 	}
 
+	// Print out the bugs - cases where a support pair passing the thresholds doesn't call both
+	// methods in the same scope. Iterate through the callers for both callees and since they're
+	// sorted, treat it like merging in mergesort to find differences between the two lists of callers
 	public static void printBugs() {
 		for (SupportPair pair : pairsThatMatter) {
 			Set<String> keySetOne = calleeToCallers.get(pair.id1).keySet();
@@ -166,7 +178,6 @@ public class Main {
 			String[] callersForTwo = keySetTwo.toArray(new String[keySetTwo.size()]);
 			int i=0, j=0;
 			while (i < callersForOne.length && j < callersForTwo.length) {
-				// TODO: This is disappointing - stop using compareTo
 				String one = callersForOne[i];
 				String two = callersForTwo[j];
 
@@ -222,6 +233,10 @@ public class Main {
 		Scanner sc = new Scanner(System.in);
 		while (sc.hasNextLine()) {
 			String line = sc.nextLine();
+			// Build the graph here - each line either represents a new caller function,
+			// a null function, a callee method being called by the current caller, or
+			// an external function being called by the current caller
+			// Only keep track of the non-null caller functions and non-external callee methods
 			if (line.length() > 0) {
 				if (line.contains(FUNCTION_IDENTIFIER)) {
 					String id = line.substring(FUNCTION_IDENTIFIER.length(), line.indexOf("'", FUNCTION_IDENTIFIER.length()));
@@ -260,6 +275,7 @@ public class Main {
 
 		}
 		
+		// Print graph to stderr for debugging
 		printGraph();	
 
 		supportSingles = new HashMap<String, SupportSingle>();
@@ -267,6 +283,7 @@ public class Main {
 
 		buildSupports();
 
+		// Print supports list to stderr for debugging
 		printSupports();
 		
 		buildConfidences();
