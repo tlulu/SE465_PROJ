@@ -6,9 +6,10 @@ import java.util.Set;
 import java.util.Scanner;
 import java.util.TreeMap;
 
-// TODO: Stop using the following:
-//	a) String.compareTo()
-//	b) String.equals()
+// Please see partA for the general idea of how this works
+// The only difference is the addition of the unravelPairs()
+// function, performs some interprocedural analysis. Please
+// see the function for details
 
 public class Main {
 
@@ -166,7 +167,6 @@ public class Main {
 			String[] callersForTwo = keySetTwo.toArray(new String[keySetTwo.size()]);
 			int i=0, j=0;
 			while (i < callersForOne.length && j < callersForTwo.length) {
-				// TODO: This is disappointing - stop using compareTo
 				String one = callersForOne[i];
 				String two = callersForTwo[j];
 
@@ -205,6 +205,9 @@ public class Main {
 		}
 	}
 
+	// We are going to do interprocedural analysis here going one level deep.
+	// This means that we will replace each caller's callees with those callees'
+	// children. We "unravel" the graph one level deep.
 	public static void unravelGraph() {
 
 		calleeToCallers = new HashMap<String, TreeMap<String, Boolean> >();
@@ -225,6 +228,7 @@ public class Main {
 			}
 			replacements.put(node.id, nCallees);
 		}
+		// Replace the old graph nodes with the new nodesOB
 		for (Node node : allNodes.values()) {
 			node.callees = replacements.get(node.id);
 
