@@ -254,5 +254,6 @@ Based on a typical callgraph that we see above, its true that during callgraph p
 
 The second defect deals with our use of the class \verb|Scanner|, which reads the callgraph passed to the graph line by line. \\
 \includegraphics[scale=0.5]{ss/bug_dubious_method.png} \\
+This defect states that we are relying on a default encoding. This is a warning that there could be problems with using a default character encoding. By default, initializing the constructor of \verb|Scanner| without an encoding uses the default platform encoding which is usually UTF-8. If the callgraph had characters that are outside the range of UTF-8 such as german characters, then those characters would not be recognized during our callgraph parsing and would lead to an incorrect program. This could be fixed by specifying the encoding explicitly each time we are decoding a sequence of bytes to a string of characters.
 
 \end{document}
