@@ -8,6 +8,7 @@
 \usepackage{enumitem}
 \usepackage{multirow}
 \usepackage{tikz}
+\usepackage{listings}
 \usetikzlibrary{automata,shapes,shapes.geometric,arrows,fit,calc,positioning}
  
 \begin{document}
@@ -37,8 +38,8 @@ z23fang@uwaterloo.ca \\ [1.5cm]
 z23fang@uwaterloo.ca \\ [1.5cm]
 
 \LARGE Di Sen \textsc{Lu} \\  [0.5cm]
-\Large 20519284 \\  [0.5cm]
-z23fang@uwaterloo.ca \\ [1.5cm]
+\Large 20512897 \\  [0.5cm]
+dslu@uwaterloo.ca \\ [1.5cm]
 
 {\Large \today}\\
 
@@ -79,6 +80,60 @@ The use of this function is simply to create a socket connection to a server, pi
 The use of the two functions in this scenario is to first close the connection if it is still open using \verb|ms_release_conn|, and then using the data retrieved from the socket connection, update the \verb|apr_hash| hash table. The use of \verb|strlen| is simply to pass the length of the key to a hash table operator function. Using this information it is clear why the bug in \verb|mc_version_ping| is a false positive. For other functions where \verb|ms_release_conn| is called, it often needs to perform hash table updates using data retrieved from the socket connection. The hash table updates needs to know about the length of the key, which is why \verb|strlen| is often called too. In the case of the function \verb|mc_version_ping|, it creates a socket connection, but it doesn't do any hash table operations using the data retrieved from the socket connection, so it makes sense that \verb|strlen| is not called.
 
 \subsection*{(c) Inter-Procedural Analysis}
+\textbf{Algorithm:} In every scope, \verb|s|, for each function \verb|f| that belongs to \verb|s|, expand \verb|f| such that \verb|s| will now contain the functions that \verb|f| directly calls. \\
+
+We define that a function \verb|a| directly calls \verb|b| if \verb|b| is contained within \verb|a|. On the other hand, if \verb|b| calls \verb|c|, then \verb|a| would indirectly call \verb|c|. If this were modelled like a tree, then \verb|b| would be the child of \verb|a| and \verb|c| would be the child of \verb|b| and consequently the grandchild of \verb|a|. In this algorithm, every function is expanded only to their children and no further.
+\\
+\textbf{Implementation:} Suppose that we have the following functions:
+
+\begin{lstlisting}
+a() {
+  b();
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+b() {
+  c();
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+c() {
+  d();
+  e();
+}
+\end{lstlisting}
+
+Now after running our algorithm, all the function \verb|b|'s that are called will be replaced with function \verb|c|. Similarly, all the function \verb|c|'s that are called will be replaced with \verb|d| and \verb|e|. We are essentially replacing a function's children with its grandchildren. See below for the structure of the scopes after running the algorithm.
+
+\begin{lstlisting}
+a() {
+  c();
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+b() {
+  d();
+  e();
+}
+\end{lstlisting}
+
+\begin{lstlisting}
+c() {
+  d();
+  e();
+}
+\end{lstlisting}
+
+The number of levels of functions that are unraveled have a lot of trade offs. If we replaced all functions with their deepest descendants, then we essentially removing all of the function calls that happened in between the parent and its deepest children. This could result in both an increase and decrease in support values for pairs of functions and as a result increase or decrease the total number of false positives. Similarly, if we instead replace all function calls with all of its descendants and not just their deepest descendants, this could also result in both an increase and decrease of false positives because we are introducing extra pairs. \\
+
+For our algorithm, we decided to replace every function's children with its grandchildren and no further descendants based on our results from \verb|part b|. After looking for false positives in \verb|part b|, we noticed that the most frequent pairing that occurred were the pair \verb|apr_array_push| and \verb|apr_array_make| which occurred more than 10 times. This led us to deduce the first fundamental reason for the existence false positives described in \verb|part b|. Due to the fact that this reason occurred so frequently in just one pair, we hypothesized that if this reason is the cause for many other function pairs. So by just unraveling just one level of function calls, we can eliminate the 'intermediate' functions that are called and consequently reduce the number of false positives. \\
+
+\textbf{Results:}
+The false positives that were examined in \verb|part b| were eliminated and the number of false positives related to \verb|apr_array_make| were reduced. However, the number of false positives related to \verb|apr_array_push| were increased. We believe that this is due to the trade offs that we mentioned above. Another reason why the number of pairs involving \verb|apr_array_push| increased, was perhaps because we don't remove functions that don't call other functions - ones that don't have any children. In the example shown above, we see that after we run our algorithm, functions \verb|b| and \verb|c| call the same functions, \verb|d| and \verb|e|. Depending on our confidence, this may now result in a false positive saying that another function needs to include either \verb|d| or \verb|e|.
+In conclusion, our algorithm decreased the false positives examined in \verb|part b| but also introduced new false positives in the process.
 
 \section*{Part (II) --- Using a Static Bug Detection Tool}
 
