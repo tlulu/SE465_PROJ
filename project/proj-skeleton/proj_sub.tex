@@ -34,8 +34,8 @@
 z23fang@uwaterloo.ca \\ [1.5cm]
 
 \LARGE Andrew \textsc{Zhou} \\  [0.5cm]
-\Large 20519284 \\  [0.5cm]
-z23fang@uwaterloo.ca \\ [1.5cm]
+\Large 20509626 \\  [0.5cm]
+a25zhou@uwaterloo.ca \\ [1.5cm]
 
 \LARGE Di Sen \textsc{Lu} \\  [0.5cm]
 \Large 20512897 \\  [0.5cm]
@@ -243,5 +243,16 @@ In conclusion, our algorithm decreased the false positives examined in \verb|par
 \end{itemize}
 
 \subsection*{(b) Analyzing Your Own Code}
+After running Coverity on our program from part (I) (a), it has detected two defects in our code. \\
+\includegraphics[scale=0.5]{ss/coverity_bugs.png} \\
+
+The first defect deals dereferencing a variable \verb|curNode|, which could be null at the time of its usage. \\
+\includegraphics[scale=0.5]{ss/bug_null_dereference.png} \\
+The use of the variable \verb|curNode| is to store the current caller function so we can add its callees to the \verb|curNode| variable as we're parsing the callgraph. The defect can be fixed by simply adding a null-check before we add a function as \verb|curNode|'s callee. However, when we were coding it, we made the assumption that \verb|curNode| should always be non-null before we add callees to it. This is generally true based on the structure of the callgraph. \\
+\includegraphics[scale=0.5]{ss/example_callgraph.png} \\
+Based on a typical callgraph that we see above, its true that during callgraph parsing, we'll always read a line like ``Call graph node for function: $<$function$\_$name$>$...'' that initialized \verb|curNode| with the current caller function before we read lines like ``CS$<$mem$\_$addr$>$ calls function $<$callee$\_$function$\_$name$>$'' which adds callees to the caller function. Therefore, the program should never crash due to omitting the null check but it should be there anyways in case the callgraph format ever changes and for proper programming practice. \\
+
+The second defect deals with our use of the class \verb|Scanner|, which reads the callgraph passed to the graph line by line. \\
+\includegraphics[scale=0.5]{ss/bug_dubious_method.png} \\
 
 \end{document}
